@@ -1,4 +1,5 @@
 #!/bin/bash
 set -e
 
-ryu-manager --ofp-tcp-listen-port=6633 faucet
+faucet_location=$(pip show ryu-faucet | grep ^Location: | awk -e '{print $2}')
+ryu-manager $@ $faucet_location/ryu_faucet/org/onfsdn/faucet/faucet.py

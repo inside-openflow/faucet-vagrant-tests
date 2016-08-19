@@ -49,45 +49,99 @@ Vagrant.configure("2") do |config|
   #   apt-get install -y apache2
   # SHELL
 
+  # Configure vagrant-cachier if installed
+  # if Vagrant.has_plugin?("vagrant-cachier")
+  #   config.cache.scope = :box
+  #   config.cache.synced_folder_opts = {
+  #     type: :nfs,
+  #     mount_options: ['rw', 'vers=3', 'tcp', 'nolock']
+  #   }
+  # end
+
   config.vm.provision "shell", path: "scripts/init-box.sh"
 
   # Define the individual VMs
-  config.vm.define "docker-test", autostart: false do |dt|
+  # -=- VMs for development use
+  config.vm.define "global-install", autostart: false do |d|
     # Ubuntu's official 16.04 box is currently borked (2016/08/18), but
     # hopefully this can be removed on the next release of the box. See
     # https://bugs.launchpad.net/cloud-images/+bug/1565985
-    dt.vm.provider "virtualbox" do |vb|
-      vb.name = "fvt-docker-test"
-    end
-
-    dt.vm.provision "shell", path: "scripts/install-docker.sh"
-    dt.vm.provision "shell", path: "scripts/build-docker-test.sh"
-
-    # Run the docker test with:
-    # vagrant ssh docker-test -c "/vagrant/scripts/run-docker-test.sh"
-  end
-
-  config.vm.define "global-install", autostart: false do |gi|
-    # Ubuntu's official 16.04 box is currently borked (2016/08/18), but
-    # hopefully this can be removed on the next release of the box. See
-    # https://bugs.launchpad.net/cloud-images/+bug/1565985
-    gi.vm.provider "virtualbox" do |vb|
+    d.vm.provider "virtualbox" do |vb|
       vb.name = "fvt-global-install"
     end
 
-    gi.vm.network "forwarded_port", guest: 6633, host: 6633
+    d.vm.network "forwarded_port", guest: 6633, host: 6633
 
-    gi.vm.synced_folder "data/etc/ryu/faucet", "/etc/ryu/faucet", type: "rsync"
-    gi.vm.synced_folder "data/var/log/ryu/faucet", "/var/log/ryu/faucet",
+    d.vm.synced_folder "data/etc/ryu/faucet", "/etc/ryu/faucet", type: "rsync"
+    d.vm.synced_folder "data/var/log/ryu/faucet", "/var/log/ryu/faucet",
       type: "rsync"
 
-    gi.vm.provision "shell", path: "scripts/install-global-libs.sh"
-    #gi.vm.provision "shell", path: "scripts/faucet-global-install.sh"
+    d.vm.provision "shell", path: "scripts/install-global-libs.sh"
+    d.vm.provision "shell", path: "scripts/faucet-global-install.sh"
 
     # Run faucet from installed library:
     # vagrant ssh global-install -c "/vagrant/scripts/run-global-faucet.sh"
 
     # Run faucet from source:
     # vagrant ssh global-install -c "/vagrant/scripts/run-global-faucet-src.sh"
+  end
+
+  # -=- VMs for automated tests
+  config.vm.define "docker-test", autostart: false do |d|
+    # Ubuntu's official 16.04 box is currently borked (2016/08/18), but
+    # hopefully this can be removed on the next release of the box. See
+    # https://bugs.launchpad.net/cloud-images/+bug/1565985
+    d.vm.provider "virtualbox" do |vb|
+      vb.name = "fvt-docker-test"
+    end
+
+    d.vm.provision "shell", path: "scripts/install-docker.sh"
+    #d.vm.provision "shell", path: "scripts/build-docker-test.sh"
+
+    # Run the docker test with:
+    # vagrant ssh docker-test -c "sudo /vagrant/scripts/build-docker-test.sh"
+    # vagrant ssh docker-test -c "sudo /vagrant/scripts/run-docker-test.sh"
+  end
+
+  config.vm.define "global-install-test", autostart: false do |d|
+    # Ubuntu's official 16.04 box is currently borked (2016/08/18), but
+    # hopefully this can be removed on the next release of the box. See
+    # https://bugs.launchpad.net/cloud-images/+bug/1565985
+    d.vm.provider "virtualbox" do |vb|
+      vb.name = "fvt-global-install-test"
+    end
+
+    d.vm.network "forwarded_port", guest: 6633, host: 6633
+    d.vm.network "private_network", ip: "192.168.50.20"
+
+    d.vm.provision "shell", path: "scripts/install-global-libs.sh"
+  end
+
+  config.vm.define "venv-install-test", autostart: false do |d|
+    # Ubuntu's official 16.04 box is currently borked (2016/08/18), but
+    # hopefully this can be removed on the next release of the box. See
+    # https://bugs.launchpad.net/cloud-images/+bug/1565985
+    d.vm.provider "virtualbox" do |vb|
+      vb.name = "fvt-venv-install-test"
+    end
+
+    d.vm.network "forwarded_port", guest: 6633, host: 6633
+    d.vm.network "private_network", ip: "192.168.50.21"
+
+    d.vm.provision "shell", path: "scripts/install-venv-libs.sh"
+  end
+
+  config.vm.define "mininet", autostart: false do |d|
+    # Ubuntu's official 16.04 box is currently borked (2016/08/18), but
+    # hopefully this can be removed on the next release of the box. See
+    # https://bugs.launchpad.net/cloud-images/+bug/1565985
+    d.vm.provider "virtualbox" do |vb|
+      vb.name = "fvt-mininet"
+    end
+
+    d.vm.network "private_network", ip: "192.168.50.10"
+
+    d.vm.provision "shell", path: "scripts/install-mininet.sh"
+
   end
 end
