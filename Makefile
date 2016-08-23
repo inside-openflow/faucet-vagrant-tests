@@ -3,11 +3,12 @@ all:
 	echo "Targets: destroy test test-global test-venv run-global run-docker-test"
 	echo "         full-test"
 
-.PHONY: destroy destroy-test destroy-docker-test destroy-venv destroy-global halt
+.PHONY: destroy destroy-test destroy-docker-test destroy-venv destroy-global
+.PHONY: destroy-xenial halt
 destroy:
 	vagrant destroy -f
 
-destroy-test: destroy-docker-test destroy-venv destroy-global
+destroy-test: destroy-docker-test destroy-venv destroy-global destroy-xenial
 
 destroy-docker-test:
 	vagrant destroy docker-test -f
@@ -18,6 +19,9 @@ destroy-venv:
 destroy-global:
 	vagrant destroy global-install-test -f
 
+destroy-xenial:
+	vagrant destroy xenial-suite-test -f
+
 halt:
 	vagrant halt
 
@@ -26,6 +30,7 @@ test:
 	$(MAKE) test-docker-test
 	$(MAKE) test-global
 	$(MAKE) test-venv
+	$(MAKE) test-xenial-suite
 	$(MAKE) halt-tests
 
 test-docker-test: halt-tests
@@ -57,12 +62,18 @@ test-venv: halt-tests
 	vagrant ssh venv-install-test \
 		-c "sudo pkill ryu-manager"
 
+.PHONY: test-venv-trusty
+test-xenial-suite: halt
+	$(MAKE) up-xenial-suite-test
+	vagrant ssh xenial-suite-test -c "/vagrant/scripts/tests/test-faucet-suite.sh"
+
 full-test:
 	$(MAKE) destroy-test
 	$(MAKE) test
 	$(MAKE) halt
 
 .PHONY: up-global-install-test up-mininet up-venv-install-test halt-tests
+.PHONY: up-xenial-suite-test
 up-mininet:
 	vagrant up mininet
 	$(MAKE) clean-mininet
@@ -72,6 +83,9 @@ up-venv-install-test:
 
 up-global-install-test:
 	vagrant up global-install-test
+
+up-xenial-suite-test:
+	vagrant up xenial-suite-test
 
 halt-tests:
 	vagrant halt '/-test$$/'
